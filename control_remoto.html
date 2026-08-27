@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dom Home - Control Remoto</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.3.4/mqtt.min.js"></script>
+    <style>
+        body {
+            background: #1a1c1e;
+            color: white;
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h1 { font-size: 1.6em; margin-bottom: 0; }
+        p { color: #aaa; margin-top: 4px; }
+        input {
+            padding: 14px;
+            font-size: 1.2em;
+            width: 80%;
+            max-width: 300px;
+            border-radius: 8px;
+            border: none;
+            margin: 16px 0;
+            text-align: center;
+        }
+        button {
+            padding: 16px 34px;
+            font-size: 1.2em;
+            border-radius: 12px;
+            border: none;
+            background: #d35400;
+            color: white;
+            font-weight: bold;
+        }
+        button:active { background: #a84300; }
+        #estado { margin-top: 22px; font-size: 1.05em; min-height: 24px; }
+        #conexion { position: absolute; top: 16px; font-size: 0.85em; color: #888; }
+    </style>
+</head>
+<body>
+    <div id="conexion">Conectando al broker...</div>
+    <h1>🏠 DOM HOME</h1>
+    <p>Control remoto (funciona con datos móviles)</p>
+    <input type="password" id="pin" placeholder="PIN de seguridad" inputmode="numeric">
+    <button onclick="desbloquear()">🔓 Abrir puerta</button>
+    <div id="estado"></div>
+
+    <script>
+        // ------------------------------------------------------------
+        // CONFIGURA ESTOS DATOS IGUAL QUE EN servidor_mqtt.py
+        // ------------------------------------------------------------
+        const MQTT_HOST = "89adb44839c84d17a152b7654ce1f1f3.s1.eu.hivemq.cloud"; // <-- reemplaza
+        const MQTT_PORT = 8884; // puerto WebSocket seguro (WSS) de HiveMQ Cloud
+        const MQTT_USUARIO = "Dom_home.pc";                  // <-- reemplaza
+        const MQTT_PASSWORD = "0123456789";                // <-- reemplaza
+        const MQTT_TOPIC = "domhome/cerradura/desbloqueo";
+
+        const estadoConexion = document.getElementById("conexion");
+        const estado = document.getElementById("estado");
+
+        const cliente = mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`, {
+            username: MQTT_USUARIO,
+            password: MQTT_PASSWORD,
+        });
+
+        cliente.on("connect", () => {
+            estadoConexion.innerText = "🟢 Conectado";
+            estadoConexion.style.color = "#27ae60";
+        });
+
+        cliente.on("error", () => {
+            estadoConexion.innerText = "🔴 Error de conexión";
+            estadoConexion.style.color = "#c0392b";
+        });
+
+        function desbloquear() {
+            const pin = document.getElementById("pin").value;
+            if (!cliente.connected) {
+                estado.innerText = "⚠️ Aún no hay conexión al broker.";
+                estado.style.color = "#c0392b";
+                return;
+            }
+            cliente.publish(MQTT_TOPIC, JSON.stringify({ pin: pin }));
+            estado.innerText = "📡 Comando enviado. Revisa el PC...";
+            estado.style.color = "white";
+        }
+    </script>
+</body>
+</html>
